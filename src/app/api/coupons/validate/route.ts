@@ -32,13 +32,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
-
-export async function GET_ALL(req: NextRequest) {
-  try {
-    await requireAdmin()
-    const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: 'desc' } })
-    return NextResponse.json({ coupons })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 401 })
-  }
-}
