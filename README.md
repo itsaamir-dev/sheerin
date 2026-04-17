@@ -6,6 +6,7 @@ A complete Next.js 14 e-commerce platform for a custom cake bakery, built with A
 
 ## ✨ Features
 
+
 ### Customer-Facing
 - 🏠 **Homepage** — Hero, categories, bestsellers, how-it-works, reviews, CTA
 - 🛍️ **Product Listing** — Filter by category, search, sort by price/rating
