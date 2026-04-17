@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #E63946;
+  --primary-light: #FF6B78;
+  --secondary: #FDF8F3;
+  --accent: #FFB703;
+  --accent-dark: #F59E0B;
+  --brown: #3D1A0A;
+  --text: #1D1D1D;
+  --text-muted: #6B7280;
+  --border: #F3E8E8;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background-color: var(--secondary);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-rose-600 hover:bg-rose-700 text-white font-semibold px-6 py-3 rounded-full transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply border-2 border-rose-600 text-rose-600 hover:bg-rose-600 hover:text-white font-semibold px-6 py-3 rounded-full transition-all duration-200;
+  }
+
+  .btn-gold {
+    @apply bg-amber-400 hover:bg-amber-500 text-brown font-bold px-6 py-3 rounded-full transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-rose-50 overflow-hidden;
+  }
+
+  .input-field {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition-all;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .section-title {
+    @apply font-display text-3xl md:text-4xl font-bold text-gray-900;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent;
+  }
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0e8e8 25%, #fde8e8 50%, #f0e8e8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #fdf8f3; }
+::-webkit-scrollbar-thumb { background: #e63946; border-radius: 10px; }
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* Star rating */
+.star-filled { color: #FFB703; }
+.star-empty { color: #D1D5DB; }
+
+/* Cart slide */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.cart-slide { animation: slideIn 0.3s ease-out; }
+
+/* Page transitions */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: fadeSlideUp 0.4s ease-out; }
+
+/* ── Safe-area support (iPhone notch / home indicator) ─────────────────────── */
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ── Mobile bottom nav spacing ─────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  body { padding-bottom: 64px; }
+}
+
+/* ── Prose improvements ────────────────────────────────────────────────────── */
+p { line-height: 1.7; }
+
+/* ── Focus ring ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #E63946;
+  outline-offset: 2px;
+}
+
+/* ── Selection ──────────────────────────────────────────────────────────────── */
+::selection {
+  background: #FFB70340;
+  color: #1D1D1D;
+}
+
+/* ── Smooth image loading ───────────────────────────────────────────────────── */
+img {
+  transition: opacity 0.3s ease;
+}
+img[loading] {
+  opacity: 0;
+}
+img.loaded {
+  opacity: 1;
+}
+
+/* ── Print styles ───────────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}
