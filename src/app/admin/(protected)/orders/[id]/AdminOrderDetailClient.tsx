@@ -53,7 +53,7 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
   }
 
   const whatsappMsg = encodeURIComponent(
-    `Hi ${order.customerName}! Your Sheerin order #${order.orderNumber.slice(-8).toUpperCase()} is now ${status.replace(/_/g, ' ')}. ${status === 'OUT_FOR_DELIVERY' ? 'Your cake is on the way! 🚀' : status === 'DELIVERED' ? 'Enjoy your cake! 🎂' : 'We'll keep you updated!'}`
+    `Hi ${order.customerName}! Your Sheerin order #${order.orderNumber.slice(-8).toUpperCase()} is now ${status.replace(/_/g, ' ')}. ${status === 'OUT_FOR_DELIVERY' ? 'Your cake is on the way! 🚀' : status === 'DELIVERED' ? 'Enjoy your cake! 🎂' : "We'll keep you updated!"}`
   )
 
   const currentIdx = STATUS_FLOW.findIndex(s => s.key === status)
