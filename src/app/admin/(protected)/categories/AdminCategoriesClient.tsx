@@ -77,11 +77,18 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this category? Products in it will become uncategorised.')) return
+  const handleDelete = async (id: string, name: string, productCount: number) => {
+    if (productCount > 0) {
+      toast.error(`Move or delete the ${productCount} product(s) in "${name}" first`)
+      return
+    }
+    if (!confirm(`Delete category "${name}"? This cannot be undone.`)) return
     const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('Deleted'); router.refresh() }
-    else toast.error('Cannot delete — category may have products')
+    if (res.ok) { toast.success('Category deleted'); router.refresh() }
+    else {
+      const d = await res.json()
+      toast.error(d.error || 'Failed to delete')
+    }
   }
 
   return (
@@ -116,7 +123,7 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
                 <button onClick={() => openEdit(c)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
-                <button onClick={() => handleDelete(c.id)} className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                <button onClick={() => handleDelete(c.id, c.name, c._count.products)} className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

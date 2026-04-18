@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, ToggleLeft, ToggleRight, Star, Package, Search, X, Loader2, ImageIcon, Upload } from 'lucide-react'
+import { Plus, Pencil, ToggleLeft, ToggleRight, Star, Package, Search, X, Loader2, ImageIcon, Upload, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export function AdminProductsClient({ products, categories }: { products: any[]; categories: any[] }) {
@@ -45,6 +45,16 @@ export function AdminProductsClient({ products, categories }: { products: any[];
   const removeImage = (idx: number) => {
     setImageFiles(prev => prev.filter((_, i) => i !== idx))
     setImagePreviews(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
+    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('Product deleted'); router.refresh() }
+    else {
+      const d = await res.json()
+      toast.error(d.error || 'Failed to delete')
+    }
   }
 
   const toggleAvailable = async (id: string, current: boolean) => {
@@ -149,10 +159,16 @@ export function AdminProductsClient({ products, categories }: { products: any[];
               <div className="flex items-center gap-2 mt-3">
                 <button
                   onClick={() => toggleAvailable(p.id, p.available)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${p.available ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${p.available ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
                 >
                   {p.available ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
                   {p.available ? 'Active' : 'Hidden'}
+                </button>
+                <button
+                  onClick={() => handleDelete(p.id, p.name)}
+                  className="flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
