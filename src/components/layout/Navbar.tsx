@@ -11,8 +11,15 @@ export function Navbar() {
   const [mobileOpen,  setMobileOpen]  = useState(false)
   const [searchOpen,  setSearchOpen]  = useState(false)
   const [searchQ,     setSearchQ]     = useState('')
+  const [authUser,    setAuthUser]    = useState<{ name: string; role: string } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const totalItems = useCartStore(s => s.totalItems())
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.user) setAuthUser(d.user)
+    }).catch(() => {})
+  }, [pathname])
 
   // Hide navbar on admin pages
   if (pathname.startsWith('/admin')) return null
@@ -118,13 +125,24 @@ export function Navbar() {
             </div>
 
             {/* Auth */}
-            <Link
-              href="/auth"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-rose-50 transition-colors"
-              aria-label="Sign in"
-            >
-              <User className="w-5 h-5 text-gray-600" />
-            </Link>
+            {authUser ? (
+              <Link
+                href="/profile"
+                className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-amber-400 text-white font-bold text-sm shadow-sm hover:shadow-md transition-all"
+                aria-label="My profile"
+                title={authUser.name}
+              >
+                {authUser.name[0].toUpperCase()}
+              </Link>
+            ) : (
+              <Link
+                href="/auth"
+                className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-rose-50 transition-colors"
+                aria-label="Sign in"
+              >
+                <User className="w-5 h-5 text-gray-600" />
+              </Link>
+            )}
 
             {/* Cart */}
             <button
@@ -191,9 +209,15 @@ export function Navbar() {
               Track Order
             </Link>
             <div className="border-t border-gray-100 my-2 pt-2 space-y-1">
-              <Link href="/auth" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                <LogIn className="w-4 h-4" /> Sign In / Register
-              </Link>
+              {authUser ? (
+                <Link href="/profile" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                  <User className="w-4 h-4" /> My Profile
+                </Link>
+              ) : (
+                <Link href="/auth" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                  <LogIn className="w-4 h-4" /> Sign In / Register
+                </Link>
+              )}
             </div>
             <Link href="/checkout" className="btn-primary text-center mt-1">
               Order Now 🎂
