@@ -1,32 +1,67 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Trash2, X, Loader2, Grid3X3 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, Grid3X3, Upload, ImageIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export function AdminCategoriesClient({ categories }: { categories: any[] }) {
-  const router  = useRouter()
-  const [modal, setModal]   = useState<'add' | 'edit' | null>(null)
-  const [saving, setSaving] = useState(false)
+  const router    = useRouter()
+  const fileRef   = useRef<HTMLInputElement>(null)
+  const [modal, setModal]     = useState<'add' | 'edit' | null>(null)
+  const [saving, setSaving]   = useState(false)
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ name: '', description: '', image: '' })
+  const [form, setForm]       = useState({ name: '', description: '' })
+  const [imageFile, setImageFile]       = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
 
-  const openAdd  = () => { setForm({ name: '', description: '', image: '' }); setEditing(null); setModal('add') }
-  const openEdit = (c: any) => { setForm({ name: c.name, description: c.description || '', image: c.image || '' }); setEditing(c); setModal('edit') }
-  const up = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
+  const openAdd = () => {
+    setForm({ name: '', description: '' })
+    setEditing(null)
+    setImageFile(null)
+    setImagePreview('')
+    setModal('add')
+  }
+
+  const openEdit = (c: any) => {
+    setForm({ name: c.name, description: c.description || '' })
+    setEditing(c)
+    setImageFile(null)
+    setImagePreview(c.image || '')
+    setModal('edit')
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
-      const slug = form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      let imageUrl = imagePreview
+
+      if (imageFile) {
+        const fd = new FormData()
+        fd.append('file', imageFile)
+        const up = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await up.json()
+        if (!up.ok) throw new Error(upData.error || 'Upload failed')
+        imageUrl = upData.url
+      }
+
+      const slug   = form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       const url    = modal === 'edit' ? `/api/categories/${editing.id}` : '/api/categories'
       const method = modal === 'edit' ? 'PATCH' : 'POST'
-      const res  = await fetch(url, {
+
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ...form, slug }),
+        body: JSON.stringify({ ...form, slug, image: imageUrl || null }),
       })
+
       if (res.ok) {
         toast.success(modal === 'edit' ? 'Category updated!' : 'Category created!')
         setModal(null)
@@ -35,8 +70,11 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
         const d = await res.json()
         toast.error(d.error || 'Failed')
       }
-    } catch { toast.error('Something went wrong') }
-    finally { setSaving(false) }
+    } catch (err: any) {
+      toast.error(err.message || 'Something went wrong')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -100,19 +138,38 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Category Name *</label>
-                <input required type="text" className="input-field" placeholder="e.g., Birthday Cakes" value={form.name} onChange={e => up('name', e.target.value)} />
+                <input required type="text" className="input-field" placeholder="e.g., Birthday Cakes"
+                  value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                <textarea className="input-field h-20 resize-none" placeholder="Short description..." value={form.description} onChange={e => up('description', e.target.value)} />
+                <textarea className="input-field h-20 resize-none" placeholder="Short description..."
+                  value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL</label>
-                <input type="url" className="input-field" placeholder="https://..." value={form.image} onChange={e => up('image', e.target.value)} />
-                {form.image && (
-                  <div className="mt-2 h-24 rounded-lg overflow-hidden bg-gray-50">
-                    <img src={form.image} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Image</label>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                {imagePreview ? (
+                  <div className="relative h-36 rounded-xl overflow-hidden bg-gray-50 group">
+                    <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button type="button" onClick={() => fileRef.current?.click()}
+                        className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" /> Change
+                      </button>
+                      <button type="button" onClick={() => { setImageFile(null); setImagePreview('') }}
+                        className="bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <X className="w-3.5 h-3.5" /> Remove
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className="w-full h-28 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-rose-300 hover:bg-rose-50/50 transition-all text-gray-400 hover:text-rose-500">
+                    <ImageIcon className="w-7 h-7" />
+                    <span className="text-sm font-medium">Click to upload image</span>
+                    <span className="text-xs">JPG, PNG, WebP up to 5MB</span>
+                  </button>
                 )}
               </div>
               <div className="flex gap-3 pt-2">
