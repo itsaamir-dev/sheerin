@@ -63,10 +63,7 @@ export function Navbar() {
             <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-amber-400 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
               <ChefHat className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <span className="font-display font-bold text-xl text-gray-900">Sweet</span>
-              <span className="font-display font-bold text-xl text-rose-600">Cake</span>
-            </div>
+            <span className="font-display font-bold text-xl text-gray-900">Shee<span className="text-rose-600">rin</span></span>
           </Link>
 
           {/* Desktop Nav */}
