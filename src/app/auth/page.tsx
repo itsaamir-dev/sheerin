@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 function AuthInner() {
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const redirect     = searchParams.get('redirect') || '/'
+  const redirect     = searchParams.get('redirect') || '/profile'
 
   const [mode,    setMode]    = useState<'login' | 'register'>('login')
   const [loading, setLoading] = useState(false)
