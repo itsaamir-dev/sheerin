@@ -34,7 +34,7 @@ type Order = {
   deliveryDate: string
   deliverySlot: string
   total: number
-  items: { productName: string; variantName?: string; quantity: number }[]
+  items: { productName: string; variantName?: string | null; quantity: number }[]
 }
 
 type User = {
