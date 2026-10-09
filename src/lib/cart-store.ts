@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CartItem, CartExtra, Product, ProductVariant } from '@/types'
@@ -9,6 +10,7 @@ interface CartStore {
   removeItem: (productId: string, variantId: string) => void
   updateQuantity: (productId: string, variantId: string, quantity: number) => void
   clearCart: () => void
+  applyServerPrices: (lines: { productId: string; variantName: string | null; price: number; extras: { price: number }[] }[]) => void
   subtotal: () => number
   totalItems: () => number
 }
@@ -59,6 +61,18 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => set({ items: [] }),
 
+      // Server responses list lines in cart order; `price` there includes extras, the cart keeps them separate.
+      applyServerPrices: (lines) => {
+        set((state) => ({
+          items: state.items.map((item, i) => {
+            const line = lines[i]
+            if (!line || line.productId !== item.productId) return item
+            const extrasTotal = line.extras.reduce((s, e) => s + e.price, 0)
+            return { ...item, price: line.price - extrasTotal }
+          }),
+        }))
+      },
+
       subtotal: () => {
         return get().items.reduce((sum, item) => {
           const extrasTotal = item.extras.reduce((s, e) => s + e.price, 0)
@@ -68,6 +82,46 @@ export const useCartStore = create<CartStore>()(
 
       totalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
     }),
-    { name: 'sheerin-cart' }
+    // Rehydrated after mount by <StoreHydrator/>, so the first client render matches the server (empty cart).
+    { name: 'sheerin-cart', skipHydration: true }
   )
 )
+
+/** When set, checkout adds the cart to this existing order instead of creating a new one. */
+interface AddToOrderStore {
+  target: { orderNumber: string; displayNumber: string; phone?: string } | null
+  start: (target: { orderNumber: string; displayNumber: string; phone?: string }) => void
+  cancel: () => void
+}
+
+export const useAddToOrderStore = create<AddToOrderStore>()(
+  persist(
+    (set) => ({
+      target: null,
+      start: (target) => set({ target }),
+      cancel: () => set({ target: null }),
+    }),
+    { name: 'sheerin-add-to-order', skipHydration: true }
+  )
+)
+
+/** Loads persisted cart state from localStorage once the app has mounted. */
+export function StoreHydrator() {
+  useEffect(() => {
+    useCartStore.persist.rehydrate()
+    useAddToOrderStore.persist.rehydrate()
+  }, [])
+  return null
+}
+
+/** True once the persisted cart has been loaded (use before deciding the cart is empty). */
+export function useCartHydrated() {
+  // Always start false: pages hydrate inside a Suspense boundary *after* the layout, by which time
+  // the store may already be loaded — reading it here would make the first render differ from the server's.
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    if (useCartStore.persist.hasHydrated()) setDone(true)
+    return useCartStore.persist.onFinishHydration(() => setDone(true))
+  }, [])
+  return done
+}

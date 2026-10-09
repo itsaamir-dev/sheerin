@@ -50,12 +50,15 @@ export function MobileBottomNav() {
 }
 
 export function FloatingWhatsApp() {
+  const path = usePathname()
+  // Product pages have their own WhatsApp button in the sticky add-to-cart bar on phones.
+  const hideOnMobile = path.startsWith('/products/')
   return (
     <a
       href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=Hi! I'd like to order a cake 🎂`}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 hover:shadow-2xl"
+      className={`fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-xl items-center justify-center transition-all hover:scale-110 hover:shadow-2xl ${hideOnMobile ? 'hidden lg:flex' : 'flex'}`}
       aria-label="Chat on WhatsApp"
     >
       <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">

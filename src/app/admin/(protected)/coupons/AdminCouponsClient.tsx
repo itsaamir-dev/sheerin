@@ -11,7 +11,7 @@ export function AdminCouponsClient({ coupons }: { coupons: any[] }) {
   const [copied, setCopied] = useState<string | null>(null)
   const [form, setForm] = useState({
     code: '', type: 'PERCENTAGE', value: '', minOrderValue: '0',
-    maxUses: '', expiresAt: '', active: true,
+    maxUses: '', expiresAt: '', active: true, isPublic: false,
   })
 
   const copyCode = (code: string) => {
@@ -20,11 +20,11 @@ export function AdminCouponsClient({ coupons }: { coupons: any[] }) {
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const toggleActive = async (id: string, current: boolean) => {
+  const toggleField = async (id: string, field: 'active' | 'isPublic', current: boolean) => {
     const res = await fetch(`/api/coupons/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !current }),
+      body: JSON.stringify({ [field]: !current }),
     })
     if (res.ok) { toast.success('Updated!'); router.refresh() }
     else toast.error('Failed to update')
@@ -45,13 +45,14 @@ export function AdminCouponsClient({ coupons }: { coupons: any[] }) {
           maxUses: form.maxUses ? parseInt(form.maxUses) : null,
           expiresAt: form.expiresAt ? new Date(form.expiresAt) : null,
           active: form.active,
+          isPublic: form.isPublic,
         }),
       })
       if (res.ok) {
         toast.success('Coupon created!')
         setShowModal(false)
         router.refresh()
-        setForm({ code: '', type: 'PERCENTAGE', value: '', minOrderValue: '0', maxUses: '', expiresAt: '', active: true })
+        setForm({ code: '', type: 'PERCENTAGE', value: '', minOrderValue: '0', maxUses: '', expiresAt: '', active: true, isPublic: false })
       } else {
         const d = await res.json()
         toast.error(d.error || 'Failed to create coupon')
@@ -118,13 +119,18 @@ export function AdminCouponsClient({ coupons }: { coupons: any[] }) {
                   {c.active ? '● Active' : '○ Inactive'}
                 </span>
                 <button
-                  onClick={() => toggleActive(c.id, c.active)}
+                  onClick={() => toggleField(c.id, 'active', c.active)}
                   className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700"
                 >
                   {c.active ? <ToggleRight className="w-4 h-4 text-green-600" /> : <ToggleLeft className="w-4 h-4" />}
                   {c.active ? 'Disable' : 'Enable'}
                 </button>
               </div>
+              <label className="mt-3 flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input type="checkbox" className="w-3.5 h-3.5 rounded text-rose-600" checked={!!c.isPublic}
+                  onChange={() => toggleField(c.id, 'isPublic', !!c.isPublic)} />
+                Show in homepage “Offers for You”
+              </label>
             </div>
           </div>
         ))}
@@ -183,6 +189,10 @@ export function AdminCouponsClient({ coupons }: { coupons: any[] }) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} className="w-4 h-4 rounded text-rose-600" />
                 <span className="text-sm font-medium text-gray-700">Active immediately</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.isPublic} onChange={(e) => setForm((p) => ({ ...p, isPublic: e.target.checked }))} className="w-4 h-4 rounded text-rose-600" />
+                <span className="text-sm font-medium text-gray-700">Advertise on the homepage</span>
               </label>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>

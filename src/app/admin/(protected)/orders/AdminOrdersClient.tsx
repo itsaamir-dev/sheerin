@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Filter, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { displayOrderNumber } from '@/lib/order-number-format'
 
 const STATUSES = ['ALL', 'PENDING', 'CONFIRMED', 'PROCESSING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']
 
@@ -22,7 +23,7 @@ export function AdminOrdersClient({ orders, activeStatus }: { orders: any[]; act
 
   const filtered = orders.filter((o) =>
     !search || o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-    o.customerPhone.includes(search) || o.orderNumber.includes(search)
+    o.customerPhone.includes(search) || o.orderNumber.toLowerCase().includes(search.toLowerCase())
   )
 
   const updateStatus = async (orderId: string, status: string) => {
@@ -104,7 +105,7 @@ export function AdminOrdersClient({ orders, activeStatus }: { orders: any[]; act
               {filtered.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-5 py-4">
-                    <p className="font-mono text-xs text-gray-500">#{order.orderNumber.slice(-8).toUpperCase()}</p>
+                    <p className="font-mono text-xs text-gray-500">{displayOrderNumber(order.orderNumber)}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                     </p>

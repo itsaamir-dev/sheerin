@@ -4,9 +4,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   User, Mail, Phone, Calendar, Package, ChevronRight,
-  LogOut, Clock, CheckCircle, Truck, XCircle, ShoppingBag
+  LogOut, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Eye, EyeOff
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { displayOrderNumber } from '@/lib/order-number-format'
+import { canAddItemsToOrder, slotLabel } from '@/lib/delivery'
+import { useDeliveryClock } from '@/hooks/useDeliveryClock'
+import { AddProductsButton } from '@/components/cart/AddToOrderBar'
+import { PushSettingsRow } from '@/components/notifications/PushOptIn'
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING:          'bg-yellow-100 text-yellow-700',
@@ -34,7 +39,7 @@ type Order = {
   deliveryDate: string
   deliverySlot: string
   total: number
-  items: { productName: string; variantName?: string | null; quantity: number }[]
+  items: { id: string; productName: string; variantName?: string | null; quantity: number; total: number; addedLater?: boolean }[]
 }
 
 type User = {
@@ -48,6 +53,8 @@ type User = {
 export function ProfileClient({ user, orders }: { user: User; orders: Order[] }) {
   const router = useRouter()
   const [tab, setTab] = useState<'all' | 'active' | 'delivered'>('all')
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const now = useDeliveryClock()
 
   const filtered = orders.filter(o => {
     if (tab === 'active')    return !['DELIVERED', 'CANCELLED'].includes(o.status)
@@ -104,6 +111,9 @@ export function ProfileClient({ user, orders }: { user: User; orders: Order[] })
               <span className="text-sm text-gray-700">{orders.length} order{orders.length !== 1 ? 's' : ''} placed</span>
             </div>
           </div>
+          <div className="mt-4">
+            <PushSettingsRow />
+          </div>
         </div>
 
         {/* Orders */}
@@ -147,14 +157,15 @@ export function ProfileClient({ user, orders }: { user: User; orders: Order[] })
               {filtered.map(order => {
                 const StatusIcon = STATUS_ICON[order.status] || Package
                 const isActive   = !['DELIVERED', 'CANCELLED'].includes(order.status)
+                const orderNo    = displayOrderNumber(order.orderNumber)
+                const canAdd     = now ? canAddItemsToOrder(order, now) : false
+                const open       = expanded === order.id
                 return (
                   <div key={order.id} className="card p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-mono font-bold text-gray-900 text-sm">
-                            #{order.orderNumber.slice(-10).toUpperCase()}
-                          </span>
+                          <span className="font-mono font-bold text-gray-900 text-sm">{orderNo}</span>
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[order.status] || 'bg-gray-100 text-gray-600'}`}>
                             <StatusIcon className="w-3 h-3" />
                             {order.status.replace(/_/g, ' ')}
@@ -162,7 +173,7 @@ export function ProfileClient({ user, orders }: { user: User; orders: Order[] })
                         </div>
                         <p className="text-xs text-gray-400 mb-2">
                           Ordered {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          {' · '}Deliver by {order.deliveryDate} ({order.deliverySlot})
+                          {' · '}Deliver {order.deliveryDate}, {slotLabel(order.deliverySlot)}
                         </p>
                         <p className="text-sm text-gray-600 truncate">
                           {order.items.map(i => `${i.productName}${i.variantName ? ` (${i.variantName})` : ''} ×${i.quantity}`).join(', ')}
@@ -174,7 +185,35 @@ export function ProfileClient({ user, orders }: { user: User; orders: Order[] })
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50">
+                    {open && (
+                      <ul className="mt-3 divide-y divide-gray-50 text-sm bg-gray-50/60 rounded-xl px-3">
+                        {order.items.map(i => (
+                          <li key={i.id} className="flex justify-between gap-3 py-2">
+                            <span className="text-gray-700">
+                              {i.productName}{i.variantName ? ` (${i.variantName})` : ''} × {i.quantity}
+                              {i.addedLater && <span className="ml-2 text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full">Added later</span>}
+                            </span>
+                            <span className="font-semibold text-gray-900">₹{i.total.toFixed(0)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-gray-50">
+                      <button
+                        onClick={() => setExpanded(open ? null : order.id)}
+                        aria-expanded={open}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition-all"
+                      >
+                        {open ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {open ? 'Hide' : 'View'}
+                      </button>
+                      {canAdd && (
+                        <AddProductsButton
+                          orderNumber={order.orderNumber}
+                          displayNumber={orderNo}
+                          className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all"
+                        />
+                      )}
                       <Link
                         href={`/track-order?id=${order.orderNumber}`}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
@@ -184,11 +223,11 @@ export function ProfileClient({ user, orders }: { user: User; orders: Order[] })
                         }`}
                       >
                         <Truck className="w-4 h-4" />
-                        {isActive ? 'Track Order' : 'View Details'}
+                        {isActive ? 'Track Order' : 'Details'}
                         <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                       <a
-                        href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=Hi! I want to enquire about my order %23${order.orderNumber}`}
+                        href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=${encodeURIComponent(`Hi! I want to enquire about my order ${orderNo}`)}`}
                         target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-center px-4 py-2.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-xl text-sm font-semibold transition-all"
                       >

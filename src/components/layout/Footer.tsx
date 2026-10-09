@@ -32,7 +32,7 @@ export function Footer() {
             <ul className="space-y-2.5 text-sm text-gray-400">
               {['Birthday Cakes', 'Wedding Cakes', 'Custom Cakes', 'Photo Cakes', 'Eggless Cakes'].map((item) => (
                 <li key={item}>
-                  <Link href={`/products?q=${item}`} className="hover:text-rose-400 transition-colors">{item}</Link>
+                  <Link href={item === 'Eggless Cakes' ? '/products?egg=eggless' : `/products?q=${encodeURIComponent(item)}`} className="hover:text-rose-400 transition-colors">{item}</Link>
                 </li>
               ))}
             </ul>

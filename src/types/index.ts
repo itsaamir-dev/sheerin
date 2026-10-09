@@ -7,6 +7,10 @@ export interface Product {
   images: string[]
   categoryId: string
   category?: Category
+  categories?: Category[]
+  highlights?: string[]
+  careInstructions?: string | null
+  eggType?: 'EGG' | 'EGGLESS' | 'BOTH' | 'NONE'
   featured: boolean
   available: boolean
   variants: ProductVariant[]
@@ -44,6 +48,9 @@ export interface Category {
   slug: string
   image?: string
   description?: string
+  group?: 'TYPE' | 'OCCASION' | 'FLAVOUR'
+  sortOrder?: number
+  showOnHome?: boolean
 }
 
 export interface CartItem {
@@ -91,6 +98,8 @@ export interface OrderItem {
   productName: string
   variantName?: string
   options?: Record<string, string>
+  extras?: CartExtra[]
+  addedLater?: boolean
   quantity: number
   price: number
   total: number

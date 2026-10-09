@@ -99,7 +99,16 @@ export function HowItWorks() {
 }
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
-export function ReviewsSection({ reviews }: { reviews: any[] }) {
+export interface HomeReview {
+  id: string
+  name: string
+  rating: number
+  comment: string
+  image: string | null
+  product: { name: string }
+}
+
+export function ReviewsSection({ reviews, stats }: { reviews: HomeReview[]; stats?: { avg: number; count: number } }) {
   const staticReviews = [
     { name: 'Priya Sharma', rating: 5, comment: 'Absolutely loved the chocolate truffle! Delivered fresh and on time.', product: 'Classic Chocolate Truffle', image: 'https://images.unsplash.com/photo-1494790108755-2616b612b5bc?w=80' },
     { name: 'Rahul Mehta', rating: 5, comment: 'The customization options are amazing. My wife was thrilled!', product: 'Red Velvet Fantasy', image: null },
@@ -108,6 +117,11 @@ export function ReviewsSection({ reviews }: { reviews: any[] }) {
     { name: 'Meena Reddy', rating: 5, comment: 'Best cake I\'ve ever tasted. The eggless option is superb!', product: 'Mango Delight', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80' },
     { name: 'Vikram Nair', rating: 4, comment: 'Excellent quality and packaging. Perfect for gifting!', product: 'Royal Wedding Cake', image: null },
   ]
+
+  // Prefer real customer reviews; the curated set only fills in while there are too few.
+  const real = reviews.map((r) => ({ name: r.name, rating: r.rating, comment: r.comment, product: r.product.name, image: r.image }))
+  const shown = real.length >= 3 ? real.slice(0, 6) : staticReviews
+  const useRealStats = real.length >= 3 && stats && stats.count > 0
 
   return (
     <section className="py-20 bg-[#FDF8F3]">
@@ -121,13 +135,15 @@ export function ReviewsSection({ reviews }: { reviews: any[] }) {
                 <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
               ))}
             </div>
-            <span className="font-bold text-gray-800">4.9</span>
-            <span className="text-gray-500 text-sm">from 2,000+ reviews</span>
+            <span className="font-bold text-gray-800">{useRealStats ? stats!.avg.toFixed(1) : '4.9'}</span>
+            <span className="text-gray-500 text-sm">
+              {useRealStats ? `from ${stats!.count.toLocaleString('en-IN')} review${stats!.count === 1 ? '' : 's'}` : 'from 2,000+ reviews'}
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {staticReviews.map((r, i) => (
+          {shown.map((r, i) => (
             <div key={i} className="card p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-rose-100 shrink-0">

@@ -7,6 +7,16 @@ import {
   CheckCircle, Truck, Loader2, MessageSquare, Phone
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { displayOrderNumber } from '@/lib/order-number-format'
+import { slotLabel } from '@/lib/delivery'
+
+const PAYMENT_STATUSES = [
+  { key: 'PENDING', label: 'Pending' },
+  { key: 'PARTIAL', label: 'Balance due' },
+  { key: 'PAID', label: 'Paid' },
+  { key: 'FAILED', label: 'Failed' },
+  { key: 'REFUNDED', label: 'Refunded' },
+]
 
 const STATUS_FLOW = [
   { key: 'PENDING',           label: 'Pending',           color: 'bg-yellow-500' },
@@ -28,6 +38,25 @@ const STATUS_BADGE: Record<string, string> = {
 export function AdminOrderDetailClient({ order }: { order: any }) {
   const router = useRouter()
   const [status, setStatus]   = useState(order.status)
+  const [paymentStatus, setPaymentStatus] = useState(order.paymentStatus)
+  const orderNo = displayOrderNumber(order.orderNumber)
+
+  const updatePayment = async (next: string) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus: next }),
+      })
+      if (res.ok) { setPaymentStatus(next); toast.success('Payment status updated'); router.refresh() }
+      else toast.error('Failed to update payment')
+    } catch {
+      toast.error('Error updating payment')
+    } finally {
+      setSaving(false)
+    }
+  }
   const [saving, setSaving]   = useState(false)
 
   const updateStatus = async (newStatus: string) => {
@@ -53,7 +82,7 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
   }
 
   const whatsappMsg = encodeURIComponent(
-    `Hi ${order.customerName}! Your Sheerin order #${order.orderNumber.slice(-8).toUpperCase()} is now ${status.replace(/_/g, ' ')}. ${status === 'OUT_FOR_DELIVERY' ? 'Your cake is on the way! 🚀' : status === 'DELIVERED' ? 'Enjoy your cake! 🎂' : "We'll keep you updated!"}`
+    `Hi ${order.customerName}! Your Sheerin order ${orderNo} is now ${status.replace(/_/g, ' ')}. ${status === 'OUT_FOR_DELIVERY' ? 'Your cake is on the way! 🚀' : status === 'DELIVERED' ? 'Enjoy your cake! 🎂' : "We'll keep you updated!"}`
   )
 
   const currentIdx = STATUS_FLOW.findIndex(s => s.key === status)
@@ -68,7 +97,7 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-display text-2xl font-bold text-gray-900">
-              Order #{order.orderNumber.slice(-8).toUpperCase()}
+              Order {orderNo}
             </h1>
             <span className={`badge border ${STATUS_BADGE[status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
               {status.replace(/_/g, ' ')}
@@ -155,13 +184,23 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
                 return (
                   <div key={i} className="flex items-start justify-between p-4 bg-rose-50/50 rounded-xl">
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.productName}</p>
+                      <p className="font-semibold text-gray-900">
+                        {item.productName}
+                        {item.addedLater && <span className="ml-2 badge bg-blue-100 text-blue-700 text-[10px]">Added after ordering</span>}
+                      </p>
                       {item.variantName && (
                         <p className="text-sm text-gray-500 mt-0.5">Size: {item.variantName}</p>
                       )}
                       {Object.entries(opts).map(([k, v]) => (
                         <p key={k} className="text-sm text-gray-500">{k}: {v as string}</p>
                       ))}
+                      {(() => {
+                        let extras: { name: string; price: number }[] = []
+                        try { extras = JSON.parse(item.extras || '[]') } catch {}
+                        return extras.length > 0 && (
+                          <p className="text-sm text-gray-500">Add-ons: {extras.map((e) => `${e.name} (₹${e.price})`).join(', ')}</p>
+                        )
+                      })()}
                       <p className="text-xs text-gray-400 mt-1">Qty: {item.quantity} × ₹{item.price.toFixed(0)}</p>
                     </div>
                     <p className="font-bold text-gray-900 text-lg">₹{item.total.toFixed(0)}</p>
@@ -242,7 +281,7 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
               <p className="font-semibold text-gray-800">{order.city} — {order.pincode}</p>
               <div className="flex items-center gap-2 text-xs bg-amber-50 text-amber-700 px-3 py-2 rounded-lg font-semibold">
                 <Clock className="w-3.5 h-3.5" />
-                {order.deliveryDate} · {order.deliverySlot.charAt(0).toUpperCase() + order.deliverySlot.slice(1)}
+                {order.deliveryDate} · {slotLabel(order.deliverySlot)}
               </div>
               {order.specialNote && (
                 <div className="flex items-start gap-2 text-xs bg-gray-50 px-3 py-2 rounded-lg text-gray-600">
@@ -264,15 +303,21 @@ export function AdminOrderDetailClient({ order }: { order: any }) {
                 <span className="text-gray-500">Method</span>
                 <span className="font-semibold text-gray-800">{order.paymentMethod}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center gap-3">
                 <span className="text-gray-500">Status</span>
-                <span className={`font-semibold ${
-                  order.paymentStatus === 'PAID' ? 'text-green-600' :
-                  order.paymentStatus === 'FAILED' ? 'text-red-600' : 'text-amber-600'
-                }`}>
-                  {order.paymentStatus}
-                </span>
+                <select
+                  value={paymentStatus}
+                  disabled={saving}
+                  onChange={(e) => updatePayment(e.target.value)}
+                  className={`text-xs font-semibold border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-rose-200 ${
+                    paymentStatus === 'PAID' ? 'text-green-700 border-green-200 bg-green-50' :
+                    paymentStatus === 'FAILED' ? 'text-red-700 border-red-200 bg-red-50' : 'text-amber-700 border-amber-200 bg-amber-50'
+                  }`}
+                >
+                  {PAYMENT_STATUSES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                </select>
               </div>
+              <p className="text-[11px] text-gray-400">Marking as Paid notifies the customer (if they enabled notifications).</p>
               <div className="flex justify-between">
                 <span className="text-gray-500">Amount</span>
                 <span className="font-bold text-rose-600">₹{order.total.toFixed(0)}</span>

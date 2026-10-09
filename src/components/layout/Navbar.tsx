@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { ShoppingCart, Menu, X, Search, ChefHat, User, LogIn } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 
-export function Navbar() {
+export function Navbar({ categories = [] }: { categories?: { id: string; name: string; slug: string }[] }) {
   const pathname    = usePathname()
   const [scrolled,    setScrolled]    = useState(false)
   const [mobileOpen,  setMobileOpen]  = useState(false)
@@ -21,9 +21,6 @@ export function Navbar() {
     }).catch(() => {})
   }, [pathname])
 
-  // Hide navbar on admin pages
-  if (pathname.startsWith('/admin')) return null
-
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handler)
@@ -37,12 +34,13 @@ export function Navbar() {
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
+  // Hide navbar on admin pages (after all hooks, so hook order never changes between renders)
+  if (pathname.startsWith('/admin')) return null
+
   const navLinks = [
-    { href: '/products',                   label: 'All Cakes'   },
-    { href: '/products?category=birthday', label: 'Birthday'    },
-    { href: '/products?category=wedding',  label: 'Wedding'     },
-    { href: '/products?category=custom',   label: 'Custom'      },
-    { href: '/about',                      label: 'About'       },
+    { href: '/products', label: 'All Cakes' },
+    ...categories.map((c) => ({ href: `/products?category=${c.slug}`, label: c.name })),
+    { href: '/about', label: 'About' },
   ]
 
   const handleSearch = (e: React.FormEvent) => {
@@ -76,7 +74,9 @@ export function Navbar() {
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-7">
             {navLinks.map(link => {
-              const active = pathname === link.href || pathname.startsWith(link.href.split('?')[0] + '/')
+              // Category links differ only by query string, which the listing page highlights itself;
+              // here only plain paths (All Cakes, About) get the active underline.
+              const active = !link.href.includes('?') && pathname === link.href
               return (
                 <Link
                   key={link.href}

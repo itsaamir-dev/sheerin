@@ -11,124 +11,133 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  phone     String?
-  role      String   @default("CUSTOMER")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
-  reviews   Review[]
-  addresses Address[]
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  password          String
+  phone             String?
+  role              String             @default("CUSTOMER")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  orders            Order[]
+  reviews           Review[]
+  addresses         Address[]
+  pushSubscriptions PushSubscription[]
 }
 
-
 model Category {
-  id          String    @id @default(cuid())
-  name        String
-  slug        String    @unique
-  image       String?
-  description String?
-  products    Product[]
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  image          String?
+  description    String?
+  group          String    @default("TYPE") // TYPE | OCCASION | FLAVOUR — drives homepage grouping
+  sortOrder      Int       @default(0)
+  showOnHome     Boolean   @default(true)
+  products       Product[] // products whose primary category this is
+  taggedProducts Product[] @relation("ProductCategories") // every product listed in this category
+  createdAt      DateTime  @default(now())
 }
 
 model Product {
-  id          String          @id @default(cuid())
-  name        String
-  slug        String          @unique
-  description String
-  basePrice   Float
-  images      String          // JSON array of image URLs
-  category    Category        @relation(fields: [categoryId], references: [id])
-  categoryId  String
-  featured    Boolean         @default(false)
-  available   Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  variants    ProductVariant[]
-  options     ProductOption[]
-  reviews     Review[]
-  orderItems  OrderItem[]
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  description      String
+  basePrice        Float
+  images           String // JSON array of image URLs
+  highlights       String           @default("[]") // JSON array of short bullet points
+  careInstructions String?
+  eggType          String           @default("BOTH") // EGG | EGGLESS | BOTH
+  category         Category         @relation(fields: [categoryId], references: [id]) // primary category (breadcrumb/label)
+  categoryId       String
+  categories       Category[]       @relation("ProductCategories")
+  featured         Boolean          @default(false)
+  available        Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  variants         ProductVariant[]
+  options          ProductOption[]
+  reviews          Review[]
+  orderItems       OrderItem[]
 }
 
 model ProductVariant {
-  id          String   @id @default(cuid())
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId   String
-  name        String   // e.g., "1kg", "2kg", "Half kg"
-  price       Float
-  available   Boolean  @default(true)
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  name      String // e.g., "1kg", "2kg", "Half kg"
+  price     Float
+  available Boolean @default(true)
 }
 
 model ProductOption {
-  id          String      @id @default(cuid())
-  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId   String
-  name        String      // e.g., "Flavor", "Egg Type"
-  type        String      @default("SELECT")
-  required    Boolean     @default(false)
-  values      String      // JSON array of {label, priceAdd}
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  name      String // e.g., "Flavor", "Egg Type"
+  type      String  @default("SELECT")
+  required  Boolean @default(false)
+  values    String // JSON array of {label, priceAdd}
 }
-
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique @default(cuid())
-  user            User?       @relation(fields: [userId], references: [id])
-  userId          String?
-  customerName    String
-  customerPhone   String
-  customerEmail   String?
-  address         String
-  city            String
-  pincode         String
-  deliveryDate    String
-  deliverySlot    String      // morning/afternoon/evening
-  specialNote     String?
-  items           OrderItem[]
-  subtotal        Float
-  discount        Float       @default(0)
-  deliveryFee     Float       @default(0)
-  total           Float
-  couponCode      String?
-  paymentMethod   String      @default("COD")
-  paymentStatus   String        @default("PENDING")
-  status          String        @default("PENDING")
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String             @id @default(cuid())
+  orderNumber       String             @unique // short readable number, see src/lib/order-number.ts
+  user              User?              @relation(fields: [userId], references: [id])
+  userId            String?
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  address           String
+  city              String
+  pincode           String
+  deliveryDate      String
+  deliverySlot      String // morning/afternoon/evening
+  specialNote       String?
+  items             OrderItem[]
+  subtotal          Float
+  discount          Float              @default(0)
+  deliveryFee       Float              @default(0)
+  total             Float
+  couponCode        String?
+  paymentMethod     String             @default("COD")
+  paymentStatus     String             @default("PENDING")
+  status            String             @default("PENDING")
+  pushSubscriptions PushSubscription[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
-
 model OrderItem {
-  id           String  @id @default(cuid())
-  order        Order   @relation(fields: [orderId], references: [id])
-  orderId      String
-  product      Product @relation(fields: [productId], references: [id])
-  productId    String
-  productName  String
-  variantName  String?
-  options      String? // JSON
-  quantity     Int
-  price        Float
-  total        Float
+  id          String  @id @default(cuid())
+  order       Order   @relation(fields: [orderId], references: [id])
+  orderId     String
+  product     Product @relation(fields: [productId], references: [id])
+  productId   String
+  productName String
+  variantName String?
+  options     String? // JSON
+  extras      String? // JSON array of {name, price}
+  addedLater  Boolean @default(false) // added to the order after it was placed
+  quantity    Int
+  price       Float
+  total       Float
 }
 
 model Coupon {
-  id            String      @id @default(cuid())
-  code          String      @unique
-  type          String      @default("PERCENTAGE")
+  id            String    @id @default(cuid())
+  code          String    @unique
+  type          String    @default("PERCENTAGE")
   value         Float
-  minOrderValue Float       @default(0)
+  minOrderValue Float     @default(0)
   maxUses       Int?
-  usedCount     Int         @default(0)
-  active        Boolean     @default(true)
+  usedCount     Int       @default(0)
+  active        Boolean   @default(true)
   expiresAt     DateTime?
-  createdAt     DateTime    @default(now())
+  isPublic      Boolean   @default(false) // advertise in the homepage offers section
+  createdAt     DateTime  @default(now())
 }
-
 
 model Review {
   id        String   @id @default(cuid())
@@ -144,11 +153,35 @@ model Review {
 }
 
 model Address {
-  id       String @id @default(cuid())
-  user     User   @relation(fields: [userId], references: [id])
-  userId   String
-  label    String // Home, Work, etc.
-  address  String
-  city     String
-  pincode  String
+  id      String @id @default(cuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  label   String // Home, Work, etc.
+  address String
+  city    String
+  pincode String
+}
+
+model Banner {
+  id          String   @id @default(cuid())
+  heading     String
+  description String?
+  image       String
+  ctaLabel    String?
+  ctaUrl      String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  orders     Order[] // guest devices follow the orders they subscribed from
+  promotions Boolean  @default(true)
+  createdAt  DateTime @default(now())
 }

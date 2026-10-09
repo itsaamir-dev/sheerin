@@ -138,17 +138,21 @@ p { line-height: 1.7; }
 }
 
 /* ── Smooth image loading ───────────────────────────────────────────────────── */
+/* Components that want a fade-in manage their own opacity (see ProductCard); a global
+   "hide until .loaded" rule hid every lazy image, since nothing ever added the class. */
 img {
   transition: opacity 0.3s ease;
-}
-img[loading] {
-  opacity: 0;
-}
-img.loaded {
-  opacity: 1;
 }
 
 /* ── Print styles ───────────────────────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }
+}
+
+/* Horizontal product rails / sliders: scrollable without a visible scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

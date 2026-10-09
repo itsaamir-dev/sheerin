@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { ShoppingBag, TrendingUp, Package, Tag, Clock, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { displayOrderNumber } from '@/lib/order-number-format'
 
 async function getDashboardStats() {
   const today = new Date()
@@ -95,7 +96,7 @@ export default async function AdminDashboard() {
               {stats.recentOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                    #{order.orderNumber.slice(-8).toUpperCase()}
+                    {displayOrderNumber(order.orderNumber)}
                   </td>
                   <td className="px-6 py-4">
                     <p className="font-semibold text-gray-800">{order.customerName}</p>

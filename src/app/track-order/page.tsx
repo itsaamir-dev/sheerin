@@ -1,7 +1,11 @@
 'use client'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, Package, CheckCircle, Truck, Clock, XCircle, Loader2 } from 'lucide-react'
+import { displayOrderNumber } from '@/lib/order-number-format'
+import { dayLabel, slotLabel } from '@/lib/delivery'
+import { PushOptIn } from '@/components/notifications/PushOptIn'
+import { AddProductsButton } from '@/components/cart/AddToOrderBar'
 
 const STATUS_STEPS = [
   { key: 'PENDING',           label: 'Order Placed',      icon: Package,     desc: 'We received your order' },
@@ -16,6 +20,7 @@ function TrackOrderInner() {
   const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState(searchParams.get('id') || '')
   const [order,   setOrder]   = useState<any>(null)
+  const [canAdd,  setCanAdd]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
@@ -26,7 +31,7 @@ function TrackOrderInner() {
     try {
       const res  = await fetch(`/api/orders/${orderId.trim()}`)
       const data = await res.json()
-      if (data.order) setOrder(data.order)
+      if (data.order) { setOrder(data.order); setCanAdd(Boolean(data.canAddItems)) }
       else setError('Order not found. Please check your order number.')
     } catch {
       setError('Failed to fetch order. Please try again.')
@@ -34,6 +39,9 @@ function TrackOrderInner() {
       setLoading(false)
     }
   }
+
+  // Links from the confirmation page, profile and notifications open the order straight away.
+  useEffect(() => { if (searchParams.get('id')) doSearch() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentStep = order ? STATUS_ORDER.indexOf(order.status) : -1
   const isCancelled = order?.status === 'CANCELLED'
@@ -50,7 +58,7 @@ function TrackOrderInner() {
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              type="text" placeholder="Enter order number..."
+              type="text" placeholder="e.g. SHR-7K4M9P"
               value={orderId} onChange={(e) => setOrderId(e.target.value)}
               className="input-field pl-11 py-4 text-base"
             />
@@ -72,7 +80,7 @@ function TrackOrderInner() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-sm text-gray-500">Order Number</p>
-                  <p className="font-mono font-bold text-gray-900">#{order.orderNumber.slice(-12).toUpperCase()}</p>
+                  <p className="font-mono font-bold text-gray-900 text-lg">{displayOrderNumber(order.orderNumber)}</p>
                 </div>
                 <span className={`badge ${isCancelled ? 'bg-red-100 text-red-700' : order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                   {order.status.replace(/_/g, ' ')}
@@ -81,14 +89,26 @@ function TrackOrderInner() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><p className="text-gray-400">Customer</p><p className="font-semibold">{order.customerName}</p></div>
                 <div><p className="text-gray-400">Phone</p><p className="font-semibold">{order.customerPhone}</p></div>
-                <div><p className="text-gray-400">Delivery Date</p><p className="font-semibold">{order.deliveryDate}</p></div>
-                <div><p className="text-gray-400">Time Slot</p><p className="font-semibold capitalize">{order.deliverySlot}</p></div>
+                <div><p className="text-gray-400">Delivery Date</p><p className="font-semibold">{dayLabel(order.deliveryDate)} <span className="text-gray-400 font-normal">({order.deliveryDate})</span></p></div>
+                <div><p className="text-gray-400">Time Slot</p><p className="font-semibold">{slotLabel(order.deliverySlot)}</p></div>
                 <div className="col-span-2">
-                  <p className="text-gray-400">Address</p>
-                  <p className="font-semibold">{order.address}, {order.city} – {order.pincode}</p>
+                  <p className="text-gray-400">Delivering to</p>
+                  <p className="font-semibold">{order.address ? `${order.address}, ` : ''}{order.city} – {order.pincode}</p>
                 </div>
               </div>
             </div>
+
+            {canAdd && (
+              <div className="card p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">Forgot something?</p>
+                  <p className="text-sm text-gray-500">Add candles, a card or another cake — it’ll arrive with this order.</p>
+                </div>
+                <AddProductsButton orderNumber={order.orderNumber} displayNumber={displayOrderNumber(order.orderNumber)} className="btn-primary text-sm px-5 py-2.5" />
+              </div>
+            )}
+
+            {!isCancelled && order.status !== 'DELIVERED' && <PushOptIn orderNumber={order.orderNumber} />}
 
             {!isCancelled ? (
               <div className="card p-6">
@@ -134,20 +154,27 @@ function TrackOrderInner() {
                 {order.items.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <div>
-                      <p className="font-semibold text-gray-800 text-sm">{item.productName}</p>
-                      <p className="text-xs text-gray-400">{item.variantName} × {item.quantity}</p>
+                      <p className="font-semibold text-gray-800 text-sm">
+                        {item.productName}
+                        {item.addedLater && <span className="ml-2 badge bg-blue-50 text-blue-700 text-[10px]">Added later</span>}
+                      </p>
+                      <p className="text-xs text-gray-400">{[item.variantName, ...Object.values(item.options ? JSON.parse(item.options) : {})].filter(Boolean).join(' · ')} × {item.quantity}</p>
                     </div>
                     <p className="font-bold text-gray-900">₹{item.total.toFixed(0)}</p>
                   </div>
                 ))}
                 <div className="flex justify-between font-bold text-base pt-2">
-                  <span>Total Paid</span><span className="text-rose-600">₹{order.total.toFixed(0)}</span>
+                  <span>Total</span><span className="text-rose-600">₹{order.total.toFixed(0)}</span>
                 </div>
+                <p className="text-xs text-gray-500">
+                  {order.paymentMethod === 'COD' ? 'Cash on delivery' : order.paymentMethod} ·{' '}
+                  {order.paymentStatus === 'PAID' ? 'Paid' : order.paymentStatus === 'PARTIAL' ? 'Balance due on delivery' : 'Payment pending'}
+                </p>
               </div>
             </div>
 
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=Hi! I want to enquire about my order #${order.orderNumber}`}
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=${encodeURIComponent(`Hi! I want to enquire about my order ${displayOrderNumber(order.orderNumber)}`)}`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition-colors"
             >

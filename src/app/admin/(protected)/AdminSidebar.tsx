@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingBag, Tag, BarChart3, LogOut, ChefHat, Settings, Grid3X3, Users } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, Tag, BarChart3, LogOut, ChefHat, Settings, Grid3X3, Users, GalleryHorizontal, Bell } from 'lucide-react'
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -9,6 +9,8 @@ const NAV = [
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/coupons', label: 'Coupons', icon: Tag },
   { href: '/admin/categories', label: 'Categories', icon: Grid3X3 },
+  { href: '/admin/banners', label: 'Banners', icon: GalleryHorizontal },
+  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
   { href: '/admin/users', label: 'Users', icon: Users },
 ]

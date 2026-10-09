@@ -2,11 +2,15 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle, Package, Clock, Phone, ArrowRight } from 'lucide-react'
+import { CheckCircle, Package, Clock, Phone, ArrowRight, Copy } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { displayOrderNumber } from '@/lib/order-number-format'
+import { PushOptIn } from '@/components/notifications/PushOptIn'
 
 function OrderSuccessInner() {
   const params  = useSearchParams()
   const orderId = params.get('id')
+  const shown   = orderId ? displayOrderNumber(orderId) : null
 
   return (
     <div className="min-h-screen bg-[#FDF8F3] pt-20 flex items-center justify-center px-4">
@@ -26,12 +30,19 @@ function OrderSuccessInner() {
         </p>
 
         {orderId && (
-          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-8">
+          <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-4">
             <p className="text-sm text-gray-500 mb-1">Order Number</p>
-            <p className="font-mono font-bold text-rose-600 text-lg">{orderId}</p>
-            <p className="text-xs text-gray-400 mt-1">Save this for tracking your order</p>
+            <button
+              onClick={() => navigator.clipboard?.writeText(shown!).then(() => toast.success('Order number copied'))}
+              className="inline-flex items-center gap-2 font-mono font-bold text-rose-600 text-2xl tracking-wider"
+              title="Copy order number"
+            >
+              {shown} <Copy className="w-4 h-4 text-rose-400" />
+            </button>
+            <p className="text-xs text-gray-400 mt-1">Use this number to track your order or when contacting support</p>
           </div>
         )}
+        {orderId && <div className="mb-8"><PushOptIn orderNumber={orderId} /></div>}
 
         {/* Status mini-steps */}
         <div className="grid grid-cols-3 gap-3 mb-8">
@@ -67,7 +78,7 @@ function OrderSuccessInner() {
             </Link>
           )}
           <a
-            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=${encodeURIComponent(`Hi! I placed an order${orderId ? ` #${orderId}` : ''}. Can you confirm?`)}`}
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210'}?text=${encodeURIComponent(`Hi! I placed an order${shown ? ` ${shown}` : ''}. Can you confirm?`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-full transition-colors"

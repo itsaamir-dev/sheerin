@@ -4,18 +4,22 @@ import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, X, Loader2, Grid3X3, Upload, ImageIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+const EMPTY_FORM = { name: '', description: '', group: 'TYPE', sortOrder: '0', showOnHome: true }
+
+const GROUP_LABELS: Record<string, string> = { TYPE: 'Cake type', OCCASION: 'Occasion', FLAVOUR: 'Flavour' }
+
 export function AdminCategoriesClient({ categories }: { categories: any[] }) {
   const router    = useRouter()
   const fileRef   = useRef<HTMLInputElement>(null)
   const [modal, setModal]     = useState<'add' | 'edit' | null>(null)
   const [saving, setSaving]   = useState(false)
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm]       = useState({ name: '', description: '' })
+  const [form, setForm]       = useState(EMPTY_FORM)
   const [imageFile, setImageFile]       = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
 
   const openAdd = () => {
-    setForm({ name: '', description: '' })
+    setForm(EMPTY_FORM)
     setEditing(null)
     setImageFile(null)
     setImagePreview('')
@@ -23,7 +27,7 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
   }
 
   const openEdit = (c: any) => {
-    setForm({ name: c.name, description: c.description || '' })
+    setForm({ name: c.name, description: c.description || '', group: c.group, sortOrder: String(c.sortOrder), showOnHome: c.showOnHome })
     setEditing(c)
     setImageFile(null)
     setImagePreview(c.image || '')
@@ -52,7 +56,8 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
         imageUrl = upData.url
       }
 
-      const slug   = form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      // Keep an existing category's slug so links to it (navbar, banners, shared URLs) keep working
+      const slug   = modal === 'edit' ? editing.slug : form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       const url    = modal === 'edit' ? `/api/categories/${editing.id}` : '/api/categories'
       const method = modal === 'edit' ? 'PATCH' : 'POST'
 
@@ -112,9 +117,12 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
                 : <div className="w-full h-full flex items-center justify-center"><Grid3X3 className="w-10 h-10 text-rose-200" /></div>
               }
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              {!c.showOnHome && (
+                <span className="absolute top-2 right-2 badge bg-white/90 text-gray-600 text-[10px]">Hidden on homepage</span>
+              )}
               <div className="absolute bottom-3 left-3">
                 <h3 className="font-display font-bold text-white">{c.name}</h3>
-                <p className="text-white/70 text-xs">{c._count.products} products</p>
+                <p className="text-white/70 text-xs">{c.productCount} products · {GROUP_LABELS[c.group] || c.group}</p>
               </div>
             </div>
             <div className="p-3">
@@ -152,6 +160,24 @@ export function AdminCategoriesClient({ categories }: { categories: any[] }) {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
                 <textarea className="input-field h-20 resize-none" placeholder="Short description..."
                   value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Homepage group</label>
+                  <select className="input-field" value={form.group} onChange={e => setForm(p => ({ ...p, group: e.target.value }))}>
+                    {Object.entries(GROUP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Sort order</label>
+                  <input type="number" className="input-field" value={form.sortOrder}
+                    onChange={e => setForm(p => ({ ...p, sortOrder: e.target.value }))} />
+                </div>
+                <label className="col-span-2 flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded text-rose-600" checked={form.showOnHome}
+                    onChange={e => setForm(p => ({ ...p, showOnHome: e.target.checked }))} />
+                  <span className="text-sm text-gray-700">Show on homepage <span className="text-gray-400">(only once it has products)</span></span>
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Image</label>

@@ -1,0 +1,12 @@
+{
+  "name": "Sheerin — Fresh Cakes Delivered",
+  "short_name": "Sheerin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDF8F3",
+  "theme_color": "#E11D48",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
