@@ -10,7 +10,7 @@ export function middleware(req: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL('/admin/login', req.url))
     }
-    
+  
   }
 
   return NextResponse.next()
